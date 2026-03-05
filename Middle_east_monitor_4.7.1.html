@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Middle East War Monitor</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{font-size:122%;}
+  body{background:#0a0c10;color:#e8eaf0;font-family:Arial,sans-serif;min-height:100vh;}
+  .ticker-wrap{background:#e8263a;overflow:hidden;height:32px;display:flex;align-items:center;position:sticky;top:65px;z-index:99;}
+  .ticker-label{background:#8b0000;color:#fff;font-size:11px;font-weight:bold;letter-spacing:2px;padding:0 14px;height:100%;display:flex;align-items:center;white-space:nowrap;flex-shrink:0;}
+  .ticker-inner{overflow:hidden;flex:1;}
+  .ticker-track{display:flex;animation:ticker 80s linear infinite;white-space:nowrap;}
+  .ticker-track span{font-size:12px;font-weight:bold;color:#fff;padding:0 32px;cursor:pointer;}
+  .ticker-track span::before{content:"◆ ";opacity:0.7;}
+  @keyframes ticker{0%{transform:translateX(0);}100%{transform:translateX(-50%);}}
+  header{background:#0d0f14;border-bottom:2px solid #e8263a;padding:0 24px;position:sticky;top:0;z-index:100;}
+  .header-inner{max-width:1300px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:62px;gap:12px;flex-wrap:wrap;}
+  .logo{display:flex;align-items:center;gap:12px;}
+  .logo-icon{width:38px;height:38px;background:#e8263a;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:19px;}
+  .logo-text{font-size:17px;font-weight:bold;color:#e8eaf0;}
+  .logo-sub{font-size:10px;color:#6b7280;letter-spacing:1.5px;text-transform:uppercase;}
+  .header-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .live-badge{display:flex;align-items:center;gap:6px;background:rgba(232,38,58,0.15);border:1px solid rgba(232,38,58,0.5);border-radius:20px;padding:5px 12px;font-size:11px;font-weight:bold;color:#e8263a;}
+  .live-dot{width:7px;height:7px;background:#e8263a;border-radius:50%;animation:blink 1.2s infinite;}
+  @keyframes blink{0%,100%{opacity:1;}50%{opacity:0.3;}}
+  .italian-time{font-family:monospace;font-size:13px;color:#ffd700;background:rgba(255,215,0,0.08);padding:5px 12px;border-radius:6px;border:1px solid rgba(255,215,0,0.22);}
+  .refresh-btn{background:rgba(59,130,246,0.15);border:1px solid rgba(59,130,246,0.4);color:#60a5fa;border-radius:8px;padding:6px 14px;cursor:pointer;font-size:12px;font-weight:bold;font-family:Arial,sans-serif;}
+  .refresh-btn:hover{background:rgba(59,130,246,0.28);}
+  .refresh-btn:disabled{opacity:0.5;cursor:not-allowed;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .spinning{display:inline-block;animation:spin 0.9s linear infinite;}
+  .refresh-progress{height:3px;background:#1e2330;}
+  .refresh-bar{height:100%;background:linear-gradient(90deg,#e8263a,#ff6b35);width:0%;transition:width 1s linear;}
+  .filters-bar{background:#111318;border-bottom:1px solid #1e2330;padding:8px 24px;position:sticky;top:97px;z-index:98;}
+  .search-bar{background:#111318;border-bottom:1px solid #1e2330;padding:8px 24px;position:sticky;top:calc(97px + 80px);z-index:97;display:flex;align-items:center;gap:10px;}
+  .search-input{background:#ffffff;border:2px solid #e8263a;color:#111318;border-radius:20px;padding:9px 18px;font-size:15px;font-weight:bold;font-family:Arial,sans-serif;outline:none;width:340px;transition:border-color 0.2s,box-shadow 0.2s;}
+  .search-input:focus{border-color:#e8263a;box-shadow:0 0 0 3px rgba(232,38,58,0.3);}
+  .search-input::placeholder{color:#9ca3af;font-weight:normal;font-size:13px;}
+  .search-clear{background:none;border:none;color:#6b7280;cursor:pointer;font-size:16px;padding:0 4px;display:none;}
+  .search-clear.visible{display:block;}
+  .search-count{font-size:11px;color:#6b7280;white-space:nowrap;}
+  .search-highlight{background:rgba(232,38,58,0.25);color:#fff;border-radius:2px;padding:0 1px;}
+  .filters-inner{max-width:1300px;margin:0 auto;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+  .filter-group{display:flex;align-items:center;gap:5px;flex-wrap:wrap;}
+  .filter-group-label{font-size:9px;color:#4b5563;letter-spacing:1.5px;text-transform:uppercase;padding:0 4px;white-space:nowrap;}
+  .filter-label{font-size:10px;color:#6b7280;letter-spacing:1.5px;text-transform:uppercase;margin-right:4px;}
+  .filter-btn{background:#161921;border:1px solid #1e2330;color:#6b7280;border-radius:20px;padding:5px 12px;cursor:pointer;font-size:12px;font-family:Arial,sans-serif;transition:all 0.2s;}
+  .filter-btn.active,.filter-btn:hover{background:rgba(232,38,58,0.15);border-color:#e8263a;color:#fff;}
+  .count-badge{background:#e8263a;color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;font-weight:bold;margin-left:3px;}
+  main{max-width:1300px;margin:0 auto;padding:24px;display:grid;grid-template-columns:1fr 290px;gap:22px;}
+  .feed-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+  .feed-title{font-size:12px;font-weight:bold;letter-spacing:2px;text-transform:uppercase;color:#6b7280;}
+  .feed-count{font-size:12px;color:#6b7280;}
+  .news-card{background:#161921;border:1px solid #1e2330;border-left:3px solid transparent;border-radius:10px;margin-bottom:10px;transition:all 0.2s;animation:fadeIn 0.3s ease both;}
+  .news-card:hover{border-color:rgba(232,38,58,0.4);border-left-color:#e8263a;transform:translateX(2px);}
+  .news-card.breaking{border-left-color:#e8263a;}
+  .news-card.developing{border-left-color:#ff6b35;}
+  .news-card.update{border-left-color:#3b82f6;}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+  .card-inner{padding:14px 16px;}
+  .card-meta{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:8px;}
+  .lang-tag{font-size:9px;font-weight:bold;letter-spacing:1px;padding:2px 7px;border-radius:3px;text-transform:uppercase;flex-shrink:0;}
+  .l-en{background:rgba(59,130,246,0.2);color:#60a5fa;border:1px solid rgba(59,130,246,0.3);}
+  .l-ar{background:rgba(168,85,247,0.2);color:#c084fc;border:1px solid rgba(168,85,247,0.3);}
+  .l-fr{background:rgba(20,184,166,0.2);color:#2dd4bf;border:1px solid rgba(20,184,166,0.3);}
+  .l-ru{background:rgba(220,38,38,0.2);color:#f87171;border:1px solid rgba(220,38,38,0.3);}
+  .source-name{font-size:11px;color:#6b7280;background:rgba(255,255,255,0.05);padding:2px 7px;border-radius:3px;}
+  .urgency-tag{font-size:9px;font-weight:bold;padding:2px 7px;border-radius:3px;text-transform:uppercase;}
+  .u-breaking{background:rgba(232,38,58,0.25);color:#e8263a;border:1px solid rgba(232,38,58,0.4);animation:blink 2s infinite;}
+  .u-developing{background:rgba(255,107,53,0.2);color:#ff8c69;border:1px solid rgba(255,107,53,0.35);}
+  .u-update{background:rgba(59,130,246,0.15);color:#93c5fd;border:1px solid rgba(59,130,246,0.3);}
+  .u-report{background:rgba(107,114,128,0.15);color:#9ca3af;border:1px solid rgba(107,114,128,0.3);}
+  .region-tag{font-size:9px;font-weight:bold;padding:2px 7px;border-radius:3px;background:rgba(255,215,0,0.1);color:#ffd700;border:1px solid rgba(255,215,0,0.2);}
+  .card-timestamp{font-family:monospace;font-size:12px;color:#6b7280;margin-left:auto;white-space:nowrap;}
+  .card-headline{font-size:15px;font-weight:bold;line-height:1.5;color:#e8eaf0;margin-bottom:6px;}
+  .card-headline a{color:#e8eaf0;text-decoration:none;}
+  .card-headline a:hover{color:#fff;text-decoration:underline;}
+  .card-summary{font-size:14px;color:#6b7280;line-height:1.6;margin-bottom:10px;}
+  .card-footer{display:flex;align-items:center;justify-content:space-between;padding-top:9px;border-top:1px solid #1e2330;}
+  .read-more{font-size:14px;color:#e8263a;font-weight:bold;text-decoration:none;}
+  .read-more:hover{text-decoration:underline;}
+  .source-note{font-size:12px;color:#6b7280;}
+  .loading-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;gap:14px;text-align:center;}
+  .loading-spinner{width:40px;height:40px;border:3px solid #1e2330;border-top-color:#e8263a;border-radius:50%;animation:spin 0.8s linear infinite;}
+  .loading-text{color:#6b7280;font-size:14px;}
+  .error-box{background:rgba(232,38,58,0.08);border:1px solid rgba(232,38,58,0.3);border-radius:10px;padding:20px;text-align:center;color:#6b7280;}
+  .sidebar{display:flex;flex-direction:column;gap:16px;}
+  .sidebar-card{background:#161921;border:1px solid #1e2330;border-radius:10px;overflow:hidden;}
+  .sidebar-header{padding:12px 15px;border-bottom:1px solid #1e2330;font-size:10px;font-weight:bold;letter-spacing:2px;text-transform:uppercase;color:#6b7280;display:flex;align-items:center;gap:7px;}
+  .sidebar-header .dot{width:6px;height:6px;background:#e8263a;border-radius:50%;}
+  .conflict-list{padding:8px;display:flex;flex-direction:column;gap:4px;}
+  .conflict-section-title{font-size:9px;font-weight:bold;letter-spacing:2px;text-transform:uppercase;color:#e8263a;padding:8px 10px 4px 10px;margin-top:4px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;user-select:none;border-radius:5px;transition:background 0.15s;}
+  .conflict-section-title:first-child{margin-top:0;}
+  .conflict-section-title:hover{background:rgba(232,38,58,0.08);}
+  .conflict-section-title .caret{font-size:20px;color:#e8263a;transition:transform 0.25s;display:inline-block;line-height:1;font-weight:bold;}
+  .conflict-section-title.collapsed .caret{transform:rotate(-90deg);}
+  .conflict-group{overflow:hidden;transition:max-height 0.3s ease;}
+  .conflict-group.collapsed{max-height:0!important;}
+  .conflict-item{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:7px;cursor:pointer;font-size:12px;border:1px solid transparent;transition:all 0.2s;}
+  .conflict-item:hover,.conflict-item.act{background:rgba(232,38,58,0.1);border-color:rgba(232,38,58,0.25);}
+  .conflict-flag{font-size:16px;}.conflict-name{font-weight:bold;flex:1;color:#e8eaf0;}
+  .ci{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+  .ci-h{background:#e8263a;animation:blink 2s infinite;}.ci-m{background:#ff6b35;}.ci-l{background:#ffd700;}
+  .stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:#1e2330;}
+  .stat-box{background:#161921;padding:12px;display:flex;flex-direction:column;gap:2px;cursor:pointer;border:1px solid transparent;border-radius:6px;transition:border-color 0.2s,background 0.2s;}
+  .stat-box:hover{border-color:#e8263a;background:#1a1f2b;}
+  .stat-num{font-size:20px;font-weight:bold;color:#e8eaf0;}
+  .stat-label{font-size:9px;color:#6b7280;letter-spacing:1px;text-transform:uppercase;}
+  .l-hi{background:rgba(249,115,22,0.2);color:#fb923c;border:1px solid rgba(249,115,22,0.3);}
+  .l-it{background:rgba(52,211,153,0.2);color:#34d399;border:1px solid rgba(52,211,153,0.3);}
+  .l-zh{background:rgba(234,179,8,0.2);color:#facc15;border:1px solid rgba(234,179,8,0.3);}
+  .source-row{display:flex;align-items:center;justify-content:space-between;padding:6px 10px;border-radius:5px;font-size:11px;color:#e8eaf0;cursor:pointer;transition:all 0.15s;border:1px solid transparent;}
+  .source-row:hover{background:rgba(232,38,58,0.08);border-color:rgba(232,38,58,0.2);}
+  #newsFeed{scroll-margin-top:300px;}
+  .source-row.src-active{background:rgba(232,38,58,0.15);border-color:#e8263a;color:#fff;}
+  .slang{font-size:9px;color:#6b7280;background:rgba(255,255,255,0.06);padding:2px 6px;border-radius:3px;}
+  .trans-badge{font-size:9px;padding:2px 7px;border-radius:3px;background:rgba(99,102,241,0.15);color:#a5b4fc;border:1px solid rgba(99,102,241,0.3);}
+  .free-badge{display:none;}
+  .bookmark-btn{background:rgba(255,215,0,0.08);border:1px solid rgba(255,215,0,0.25);border-radius:8px;cursor:pointer;font-size:22px;padding:4px 10px;transition:all 0.2s;flex-shrink:0;color:#ffd700;line-height:1;}
+  .bookmark-btn:hover{transform:scale(1.15);background:rgba(255,215,0,0.2);border-color:#ffd700;}
+  .bookmark-btn.bookmarked{background:rgba(255,215,0,0.2);border-color:#ffd700;}
+  .bookmarks-bar{background:#111318;border-bottom:1px solid #1e2330;padding:6px 24px;position:sticky;top:calc(97px + 80px + 40px);z-index:96;display:flex;align-items:center;gap:10px;}
+  .bm-toggle{background:#161921;border:1px solid #1e2330;color:#ffd700;border-radius:20px;padding:5px 14px;cursor:pointer;font-size:12px;font-weight:bold;font-family:Arial,sans-serif;transition:all 0.2s;}
+  .bm-toggle:hover,.bm-toggle.active{background:rgba(255,215,0,0.15);border-color:#ffd700;color:#fff;}
+  .bm-count{font-size:11px;color:#6b7280;}
+  @media(max-width:820px){main{grid-template-columns:1fr;padding:12px;}header{padding:0 12px;}.filters-bar{padding:8px 12px;}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="logo">
+      <div class="logo-icon">🗺️</div>
+      <div>
+        <div class="logo-text">MIDDLE EAST WAR MONITOR</div>
+        <div class="logo-sub">Live RSS Feed · Real Sources · 100% Free · No API Key</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="live-badge"><div class="live-dot"></div> LIVE</div>
+      <div class="italian-time" id="italianClock">--:--:--</div>
+      <button class="refresh-btn" id="refreshBtn" onclick="loadNews(true)"><span id="refreshIcon">↻</span> Refresh</button>
+    </div>
+  </div>
+  <div class="refresh-progress"><div class="refresh-bar" id="refreshBar"></div></div>
+</header>
+
+<div class="ticker-wrap">
+  <div class="ticker-label">⚡ BREAKING</div>
+  <div class="ticker-inner"><div class="ticker-track" id="tickerTrack"><span>Loading live feed…</span><span>Loading live feed…</span></div></div>
+</div>
+
+<div class="filters-bar">
+  <div class="filters-inner">
+    <button class="filter-btn active" onclick="setFilter('all',this)">All <span class="count-badge" id="cntAll">—</span></button>
+    <span class="filter-group-label">|</span>
+    <button class="filter-btn" onclick="setFilter('Gaza',this)">🇵🇸 Gaza</button>
+    <button class="filter-btn" onclick="setFilter('Lebanon',this)">🇱🇧 Lebanon</button>
+    <button class="filter-btn" onclick="setFilter('Syria',this)">🇸🇾 Syria</button>
+    <button class="filter-btn" onclick="setFilter('Yemen',this)">🇾🇪 Yemen</button>
+    <button class="filter-btn" onclick="setFilter('Iran',this)">🇮🇷 Iran</button>
+    <button class="filter-btn" onclick="setFilter('Israel',this)">🇮🇱 Israel</button>
+    <button class="filter-btn" onclick="setFilter('West Bank',this)">🏳️ W.Bank</button>
+    <span class="filter-group-label">|</span>
+    <button class="filter-btn" onclick="setFilter('Saudi Arabia',this)">🇸🇦 Saudi</button>
+    <button class="filter-btn" onclick="setFilter('UAE',this)">🇦🇪 UAE</button>
+    <button class="filter-btn" onclick="setFilter('Egypt',this)">🇪🇬 Egypt</button>
+    <button class="filter-btn" onclick="setFilter('Jordan',this)">🇯🇴 Jordan</button>
+    <button class="filter-btn" onclick="setFilter('Qatar',this)">🇶🇦 Qatar</button>
+    <button class="filter-btn" onclick="setFilter('Iraq',this)">🇮🇶 Iraq</button>
+    <button class="filter-btn" onclick="setFilter('Turkey',this)">🇹🇷 Turkey</button>
+    <button class="filter-btn" onclick="setFilter('Oman',this)">🇴🇲 Oman</button>
+    <button class="filter-btn" onclick="setFilter('Kuwait',this)">🇰🇼 Kuwait</button>
+    <button class="filter-btn" onclick="setFilter('Armenia',this)">🇦🇲 Armenia</button>
+    <button class="filter-btn" onclick="setFilter('Azerbaijan',this)">🇦🇿 Azerbaijan</button>
+    <span class="filter-group-label">|</span>
+    <button class="filter-btn" onclick="setFilter('USA',this)">🇺🇸 USA</button>
+    <button class="filter-btn" onclick="setFilter('Europe',this)">🇪🇺 Europe</button>
+    <button class="filter-btn" onclick="setFilter('UK',this)">🇬🇧 UK</button>
+    <button class="filter-btn" onclick="setFilter('France',this)">🇫🇷 France</button>
+    <button class="filter-btn" onclick="setFilter('Germany',this)">🇩🇪 Germany</button>
+    <button class="filter-btn" onclick="setFilter('Italy',this)">🇮🇹 Italy</button>
+    <button class="filter-btn" onclick="setFilter('Spain',this)">🇪🇸 Spain</button>
+    <button class="filter-btn" onclick="setFilter('Russia',this)">🇷🇺 Russia</button>
+    <button class="filter-btn" onclick="setFilter('China',this)">🇨🇳 China</button>
+    <span class="filter-group-label">|</span>
+    <button class="filter-btn" onclick="setFilter('Economy',this)">💹 Economy</button>
+  </div>
+  </div>
+
+<div class="search-bar">
+  <span style="font-size:14px;color:#e8263a;letter-spacing:1px;text-transform:uppercase;white-space:nowrap;font-weight:bold;">🔍 Search:</span>
+  <input type="text" class="search-input" id="searchInput" placeholder="nuclear risk  —  all words must match" oninput="onSearchInput()" onkeydown="if(event.key==='Escape')clearSearch()">
+  <button class="search-clear" id="searchClear" onclick="clearSearch()">✕</button>
+  <span class="search-count" id="searchCount"></span>
+</div>
+
+<div class="bookmarks-bar">
+  <button class="bm-toggle" id="bmToggle" onclick="toggleBookmarkView()">⭐ Bookmarks <span class="count-badge" id="bmCount" style="background:#ffd700;color:#000;">0</span></button>
+  <span class="bm-count" id="bmStatus"></span>
+</div>
+
+<main>
+  <div>
+    <div class="feed-header">
+      <span class="feed-title">📡 Live Dispatch Feed</span>
+      <span class="feed-count" id="feedCount">Loading…</span>
+    </div>
+    <div id="newsFeed">
+      <div class="loading-state">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Fetching live headlines from real news sources…</div>
+      </div>
+    </div>
+  </div>
+
+  <aside class="sidebar">
+
+    <div class="sidebar-card">
+      <div class="sidebar-header"><div class="dot"></div> Active Conflict Zones</div>
+      <div class="conflict-list">
+
+        <div class="conflict-section-title collapsed" onclick="toggleGroup('grp-conflicts',this)"><span>⚔️ Active Conflicts</span><span class="caret">▾</span></div>
+        <div class="conflict-group collapsed" id="grp-conflicts" style="max-height:0px;">
+          <div class="conflict-item act" onclick="setFilter('Gaza',null)"><span class="conflict-flag">🇵🇸</span><span class="conflict-name">Gaza Strip</span><div class="ci ci-h"></div></div>
+          <div class="conflict-item" onclick="setFilter('Lebanon',null)"><span class="conflict-flag">🇱🇧</span><span class="conflict-name">Lebanon</span><div class="ci ci-h"></div></div>
+          <div class="conflict-item" onclick="setFilter('Syria',null)"><span class="conflict-flag">🇸🇾</span><span class="conflict-name">Syria</span><div class="ci ci-m"></div></div>
+          <div class="conflict-item" onclick="setFilter('Yemen',null)"><span class="conflict-flag">🇾🇪</span><span class="conflict-name">Yemen</span><div class="ci ci-m"></div></div>
+          <div class="conflict-item" onclick="setFilter('Iran',null)"><span class="conflict-flag">🇮🇷</span><span class="conflict-name">Iran</span><div class="ci ci-m"></div></div>
+          <div class="conflict-item" onclick="setFilter('Israel',null)"><span class="conflict-flag">🇮🇱</span><span class="conflict-name">Israel</span><div class="ci ci-h"></div></div>
+          <div class="conflict-item" onclick="setFilter('West Bank',null)"><span class="conflict-flag">🏳️</span><span class="conflict-name">West Bank</span><div class="ci ci-h"></div></div>
+        </div>
+
+        <div class="conflict-section-title collapsed" onclick="toggleGroup('grp-regional',this)"><span>🌍 Regional Actors</span><span class="caret">▾</span></div>
+        <div class="conflict-group collapsed" id="grp-regional" style="max-height:0px;">
+          <div class="conflict-item" onclick="setFilter('Saudi Arabia',null)"><span class="conflict-flag">🇸🇦</span><span class="conflict-name">Saudi Arabia</span><div class="ci ci-l"></div></div>
+          <div class="conflict-item" onclick="setFilter('UAE',null)"><span class="conflict-flag">🇦🇪</span><span class="conflict-name">UAE</span><div class="ci ci-l"></div></div>
+          <div class="conflict-item" onclick="setFilter('Egypt',null)"><span class="conflict-flag">🇪🇬</span><span class="conflict-name">Egypt</span><div class="ci ci-l"></div></div>
+          <div class="conflict-item" onclick="setFilter('Jordan',null)"><span class="conflict-flag">🇯🇴</span><span class="conflict-name">Jordan</span><div class="ci ci-l"></div></div>
+          <div class="conflict-item" onclick="setFilter('Qatar',null)"><span class="conflict-flag">🇶🇦</span><span class="conflict-name">Qatar</span><div class="ci ci-l"></div></div>
+          <div class="conflict-item" onclick="setFilter('Iraq',null)"><span class="conflict-flag">🇮🇶</span><span class="conflict-name">Iraq</span><div class="ci ci-l"></div></div>
+          <div class="conflict-item" onclick="setFilter('Turkey',null)"><span class="conflict-flag">🇹🇷</span><span class="conflict-name">Turkey</span><div class="ci ci-l"></div></div>
+          <div class="conflict-item" onclick="setFilter('Oman',null)"><span class="conflict-flag">🇴🇲</span><span class="conflict-name">Oman</span><div class="ci ci-l"></div></div>
+          <div class="conflict-item" onclick="setFilter('Kuwait',null)"><span class="conflict-flag">🇰🇼</span><span class="conflict-name">Kuwait</span><div class="ci ci-l"></div></div>
+          <div class="conflict-item" onclick="setFilter('Armenia',null)"><span class="conflict-flag">🇦🇲</span><span class="conflict-name">Armenia</span><div class="ci ci-l"></div></div>
+          <div class="conflict-item" onclick="setFilter('Azerbaijan',null)"><span class="conflict-flag">🇦🇿</span><span class="conflict-name">Azerbaijan</span><div class="ci ci-l"></div></div>
+        </div>
+
+        <div class="conflict-section-title collapsed" onclick="toggleGroup('grp-global',this)"><span>🌐 Global Powers</span><span class="caret">▾</span></div>
+        <div class="conflict-group collapsed" id="grp-global" style="max-height:0px;">
+          <div class="conflict-item" onclick="setFilter('USA',null)"><span class="conflict-flag">🇺🇸</span><span class="conflict-name">USA</span><div class="ci ci-l"></div></div>
+          <div class="conflict-item" onclick="setFilter('Europe',null)"><span class="conflict-flag">🇪🇺</span><span class="conflict-name">Europe / EU</span><div class="ci ci-l"></div></div>
+          <div class="conflict-item" onclick="setFilter('UK',null)"><span class="conflict-flag">🇬🇧</span><span class="conflict-name">UK</span><div class="ci ci-l"></div></div>
+          <div class="conflict-item" onclick="setFilter('France',null)"><span class="conflict-flag">🇫🇷</span><span class="conflict-name">France</span><div class="ci ci-l"></div></div>
+          <div class="conflict-item" onclick="setFilter('Germany',null)"><span class="conflict-flag">🇩🇪</span><span class="conflict-name">Germany</span><div class="ci ci-l"></div></div>
+          <div class="conflict-item" onclick="setFilter('Italy',null)"><span class="conflict-flag">🇮🇹</span><span class="conflict-name">Italy</span><div class="ci ci-l"></div></div>
+          <div class="conflict-item" onclick="setFilter('Spain',null)"><span class="conflict-flag">🇪🇸</span><span class="conflict-name">Spain</span><div class="ci ci-l"></div></div>
+          <div class="conflict-item" onclick="setFilter('Russia',null)"><span class="conflict-flag">🇷🇺</span><span class="conflict-name">Russia</span><div class="ci ci-l"></div></div>
+          <div class="conflict-item" onclick="setFilter('China',null)"><span class="conflict-flag">🇨🇳</span><span class="conflict-name">China</span><div class="ci ci-l"></div></div>
+        </div>
+
+        <div class="conflict-section-title collapsed" onclick="toggleGroup('grp-economy',this)"><span>💹 Economy & Markets</span><span class="caret">▾</span></div>
+        <div class="conflict-group collapsed" id="grp-economy" style="max-height:0px;">
+          <div class="conflict-item" onclick="setFilter('Economy',null)"><span class="conflict-flag">💹</span><span class="conflict-name">Economy & Markets</span><div class="ci ci-l"></div></div>
+        </div>
+
+      </div>
+      </div>
+
+      <div class="sidebar-card">
+      <div class="sidebar-header"><div class="dot"></div> Session Stats</div>
+      <div class="stats-grid">
+        <div class="stat-box"><div class="stat-num" id="statTotal">—</div><div class="stat-label">Headlines</div></div>
+        <div class="stat-box"><div class="stat-num" id="statSources" style="color:#e8263a">—</div><div class="stat-label">Sources</div></div>
+        <div class="stat-box" onclick="filterByStat('today')" title="Show today's articles"><div class="stat-num" id="statToday">—</div><div class="stat-label">Today ↗</div></div>
+        <div class="stat-box" onclick="filterByStat('breaking')" title="Show breaking news"><div class="stat-num" id="statBreaking">—</div><div class="stat-label">Breaking ↗</div></div>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <div class="sidebar-header"><div class="dot"></div> Live RSS Sources</div>
+      <div class="sources-list" id="sourcesList">
+        <div class="source-row" onclick="setSourceFilter('Al Jazeera',this)"><span>Al Jazeera English</span><span class="slang">EN</span></div>
+        <div class="source-row" onclick="setSourceFilter('Times of Israel',this)"><span>Times of Israel</span><span class="slang">EN</span></div>
+        <div class="source-row" onclick="setSourceFilter('Arab News',this)"><span>Arab News</span><span class="slang">EN</span></div>
+        <div class="source-row" onclick="setSourceFilter('Al-Monitor',this)"><span>Al-Monitor</span><span class="slang">EN</span></div>
+        <div class="source-row" onclick="setSourceFilter('Responsible Statecraft',this)"><span>Responsible Statecraft</span><span class="slang">EN</span></div>
+        <div class="source-row" onclick="setSourceFilter('Defense One',this)"><span>Defense One</span><span class="slang">EN</span></div>
+        <div class="source-row" onclick="setSourceFilter('Middle East Eye',this)"><span>Middle East Eye</span><span class="slang">EN</span></div>
+        <div class="source-row" onclick="setSourceFilter('Reuters',this)"><span>Reuters World</span><span class="slang">EN</span></div>
+        <div class="source-row" onclick="setSourceFilter('Bloomberg',this)"><span>Bloomberg Markets</span><span class="slang">EN</span></div>
+        <div class="source-row" onclick="setSourceFilter('Bloomberg Economy',this)"><span>Bloomberg Economy</span><span class="slang">EN</span></div>
+        <div class="source-row" onclick="setSourceFilter('CNBC World',this)"><span>CNBC World</span><span class="slang">EN</span></div>
+        <div class="source-row" onclick="setSourceFilter('The Economist',this)"><span>The Economist ME</span><span class="slang">EN</span></div>
+        <div class="source-row" onclick="setSourceFilter('Oil Price',this)"><span>OilPrice.com</span><span class="slang">EN</span></div>
+        <div class="source-row" onclick="setSourceFilter('Defense News',this)"><span>Defense News</span><span class="slang">EN</span></div>
+        <div class="source-row" onclick="setSourceFilter('BBC Middle East',this)"><span>BBC Middle East</span><span class="slang">EN</span></div>
+        <div class="source-row" onclick="setSourceFilter('Jerusalem Post',this)"><span>Jerusalem Post</span><span class="slang">EN</span></div>
+        <div class="source-row" onclick="setSourceFilter('France 24',this)"><span>France 24</span><span class="slang">EN/FR</span></div>
+        <div class="source-row" onclick="setSourceFilter('The Guardian',this)"><span>The Guardian ME</span><span class="slang">EN</span></div>
+        <div class="source-row" onclick="setSourceFilter('NYT World',this)"><span>NYT World</span><span class="slang">EN</span></div>
+        <div class="source-row" onclick="setSourceFilter('WSJ World',this)"><span>WSJ World</span><span class="slang">EN</span></div>
+        <div class="source-row" onclick="setSourceFilter('FT (Europe)',this)"><span>FT Europe</span><span class="slang">EN</span></div>
+        <div class="source-row" onclick="setSourceFilter('FT (USA)',this)"><span>FT USA</span><span class="slang">EN</span></div>
+        <div class="source-row" onclick="setSourceFilter('Politico',this)"><span>Politico</span><span class="slang">EN</span></div>
+        <div class="source-row" onclick="setSourceFilter('Kommersant',this)"><span>Kommersant</span><span class="slang" style="color:#f87171">RU→EN</span></div>
+        <div class="source-row" onclick="setSourceFilter('Vedomosti',this)"><span>Vedomosti</span><span class="slang" style="color:#f87171">RU→EN</span></div>
+        <div class="source-row" onclick="setSourceFilter('The Hindu',this)"><span>The Hindu</span><span class="slang" style="color:#fb923c">IN</span></div>
+        <div class="source-row" onclick="setSourceFilter('Indian Express',this)"><span>Indian Express</span><span class="slang" style="color:#fb923c">IN</span></div>
+        <div class="source-row" onclick="setSourceFilter('The Diplomat',this)"><span>The Diplomat</span><span class="slang" style="color:#facc15">CN/EN</span></div>
+        <div class="source-row" onclick="setSourceFilter('Global Times',this)"><span>Global Times</span><span class="slang" style="color:#facc15">CN→EN</span></div>
+        <div class="source-row" onclick="setSourceFilter('Xinhua',this)"><span>Xinhua</span><span class="slang" style="color:#facc15">CN→EN</span></div>
+        <div class="source-row" onclick="setSourceFilter('ANSA',this)"><span>ANSA Italia</span><span class="slang" style="color:#34d399">IT→EN</span></div>
+        <div class="source-row" onclick="setSourceFilter('Repubblica',this)"><span>La Repubblica</span><span class="slang" style="color:#34d399">IT→EN</span></div>
+        <div class="source-row" onclick="setSourceFilter('Corriere',this)"><span>Corriere della Sera</span><span class="slang" style="color:#34d399">IT→EN</span></div>
+        <div class="source-row" onclick="setSourceFilter('Sole 24 Ore',this)"><span>Il Sole 24 Ore</span><span class="slang" style="color:#34d399">IT→EN</span></div>
+        <div class="source-row" onclick="setSourceFilter('Fatto Quotidiano',this)"><span>Il Fatto Quotidiano</span><span class="slang" style="color:#34d399">IT→EN</span></div>
+        <div class="source-row src-all-row" onclick="setSourceFilter(null,this)" style="margin-top:6px;border-top:1px solid #1e2330;padding-top:10px;color:#6b7280;font-size:10px;letter-spacing:1px;">✕ Clear source filter</div>
+      </div>
+    </div>
+
+    <div class="sidebar-card" style="padding:14px;text-align:center;">
+      <div style="font-size:12px;color:#6b7280;line-height:1.8;">
+        🔄 Auto-refresh every <strong style="color:#e8eaf0">10 min</strong><br>
+        Next update: <strong style="color:#ffd700" id="nextRefresh">—</strong><br>
+        <span style="font-size:10px;opacity:0.6;">ALL TIMES · ITALIAN (CET/CEST)</span>
+      </div>
+    </div>
+
+  </aside>
+</main>
+
+<script>
+var REGIONS = {
+  'Gaza':['gaza','rafah','khan younis','jabalia','hamas','gazan','gaza strip','gaza war','gaza ceasefire','gaza hostage','gaza aid','gaza humanitarian'],
+  'Lebanon':['lebanon','beirut','hezbollah','south lebanon','litani','tyre','lebanese'],
+  'Syria':['syria','damascus','aleppo','idlib','assad','syrian'],
+  'Yemen':['yemen','houthi','sanaa','aden','marib','houthis','yemeni'],
+  'Iran':['iran','tehran','irgc','khamenei','iranian','hormuz','iran nuclear','iran sanctions','iran attack','iran missile'],
+  'Israel':['israel','idf','tel aviv','jerusalem','netanyahu','israeli','israel war','israel strike','israel military'],
+  'West Bank':['west bank','ramallah','jenin','nablus','hebron','settler','palestin'],
+  'Saudi Arabia':['saudi','riyadh','mohammed bin salman','mbs','saudi arabia','saudi reaction','saudi mediation','saudi position'],
+  'UAE':['uae','united arab emirates','abu dhabi','dubai','emirati','uae position','uae reaction'],
+  'Egypt':['egypt','cairo','sisi','egyptian','rafah crossing','egypt mediation','egypt ceasefire'],
+  'Jordan':['jordan','amman','jordanian','jordan reaction','jordan position'],
+  'Qatar':['qatar','doha','qatari','qatar mediation','qatar talks','qatar ceasefire'],
+  'Iraq':['iraq','baghdad','iraqi','iraq militia','iraq reaction'],
+  'Turkey':['turkey','ankara','erdogan','turkish','turkey reaction','turkey position','turkey nato'],
+  'Oman':['oman','muscat','omani','oman mediation'],
+  'Kuwait':['kuwait','kuwaiti'],
+  'Armenia':['armenia','yerevan','armenian','armenia reaction','armenia position'],
+  'Azerbaijan':['azerbaijan','baku','azerbaijani','aliyev','azerbaijan reaction'],
+  'USA':['united states','washington','biden','trump','white house','pentagon','state department','us military','us policy','us reaction','us sanctions','us veto','congress middle east','us israel','us iran','us troops','us secretary'],
+  'Europe':['european union','eu foreign','nato','brussels','european reaction','europe position','germany middle east','france middle east','uk middle east','britain middle east','macron middle east','scholz middle east','sunak middle east','european parliament','european council','eu sanctions','eu ceasefire','eu humanitarian','eu israel','eu iran','eu position middle east'],
+  'UK':['united kingdom','britain','british','london','sunak','starmer','uk reaction','uk position','uk middle east','uk israel','uk iran','uk sanctions'],
+  'France':['france','paris','macron','french','france reaction','france position','france middle east','france israel','france iran'],
+  'Germany':['germany','berlin','scholz','german','germany reaction','germany position','germany middle east','germany israel'],
+  'Italy':['italy','rome','italian','meloni','italy reaction','italy position','italy middle east','italy israel','italy iran','italia medio oriente'],
+  'Spain':['spain','madrid','sanchez','spanish','spain reaction','spain position','spain middle east','spain israel','spain iran','spain recogni'],
+  'Russia':['russia','moscow','putin','kremlin','russian','russia reaction','russia position','russia middle east','russia israel','russia iran','russia veto'],
+  'China':['china','beijing','xi jinping','chinese','china reaction','china position','china middle east','china israel','china iran','china mediation'],
+  'Economy':[
+    'oil price','crude oil','crude price','barrel price','brent crude','wti crude',
+    'opec','petroleum','oil refin','energy price','fuel price','gasoline price',
+    'natural gas price','lng price','gas supply','pipeline attack','energy market',
+    'strait of hormuz','suez canal','red sea ship','red sea attack','red sea block',
+    'shipping lane','tanker attack','cargo ship','freight cost','freight rate',
+    'maritime trade','trade route block','supply chain disrupt','logistics war',
+    'arms deal','weapons sale','military contract','defense budget',
+    'defense spending','military aid','arms embargo','weapons supply',
+    'military export','defense industry','defense stock',
+    'lockheed','raytheon','boeing defense','bae systems',
+    'war inflation','war cost','war spending','war bond','war finance',
+    'gdp impact','recession risk','economic sanction','financial sanction',
+    'trade sanction','asset freeze','asset seize','currency crisis',
+    'bond yield war','imf loan','world bank fund','sovereign debt crisis',
+    'trade embargo','export ban','import ban','geopolitical risk',
+    'risk premium','war premium','market volatility war','oil market',
+    'commodity price','futures market war',
+    'reconstruction fund','aid package','humanitarian fund','war damage',
+    'war reparation','post-war rebuild','infrastructure damage',
+    'donor conference','economic recovery war',
+    'food price war','grain price','wheat price','food security',
+    'famine war','food aid','fertilizer price','food crisis war',
+    'shipping insurance','war risk insurance','company sanction',
+    'business disruption war','supply shortage','price spike war',
+    'cost of living war','economic impact war','war economy',
+    'iran oil','israel economy','gaza economy','houthi ship',
+    'houthi attack ship','blockade economy','ceasefire deal economy'
+  ]
+};
+
+// All keywords that indicate Middle East war relevance — used to filter ALL sources
+var ME_GEO = [
+  'gaza','rafah','hamas','hezbollah','idf','israel','israeli','netanyahu',
+  'iran','irgc','khamenei','tehran','hormuz',
+  'beirut','lebanon',
+  'syria','damascus','aleppo','idlib','assad',
+  'yemen','houthi','sanaa','aden',
+  'west bank','ramallah','jenin','hebron','palestin',
+  'saudi arabia','riyadh','mbs','mohammed bin salman',
+  'united arab emirates','abu dhabi','dubai',
+  'egypt','cairo','sisi','rafah crossing',
+  'amman','jordan','doha','qatar',
+  'baghdad','iraq','erdogan','ankara',
+  'middle east','arab world',
+  'ceasefire','airstrike','air strike','missile attack','drone attack',
+  'military operation','occupation','siege','hostage','ground offensive',
+  'two-state','un security council','suez canal','strait of hormuz',
+  'red sea attack','houthi ship','houthi attack'
+];
+
+function isMERelevant(text){
+  var low = (text||'').toLowerCase();
+  for(var i=0;i<ME_GEO.length;i++){
+    if(wbMatch(low, ME_GEO[i])) return true;
+  }
+  return false;
+}
+
+var SOURCES = [
+  {name:'Al Jazeera',lang:'EN',url:'https://www.aljazeera.com/xml/rss/all.xml'},
+  {name:'Times of Israel',lang:'EN',url:'https://www.timesofisrael.com/feed/'},
+  {name:'Arab News',lang:'EN',url:'https://www.arabnews.com/rss.xml'},
+  {name:'Al-Monitor',lang:'EN',url:'https://www.al-monitor.com/rss'},
+  {name:'Responsible Statecraft',lang:'EN',url:'https://responsiblestatecraft.org/feed/'},
+  {name:'Defense One',lang:'EN',url:'https://www.defenseone.com/rss/all/'},
+  {name:'Middle East Eye',lang:'EN',url:'https://www.middleeasteye.net/rss'},
+  {name:'Reuters',lang:'EN',url:'https://feeds.reuters.com/reuters/worldNews'},
+  {name:'Bloomberg',lang:'EN',url:'https://feeds.bloomberg.com/markets/news.rss'},
+  {name:'Bloomberg Economy',lang:'EN',url:'https://feeds.bloomberg.com/economics/news.rss'},
+  {name:'CNBC World',lang:'EN',url:'https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=100727362'},
+  {name:'The Economist',lang:'EN',url:'https://www.economist.com/middle-east-and-africa/rss.xml'},
+  {name:'Oil Price',lang:'EN',url:'https://oilprice.com/rss/main'},
+  {name:'Defense News',lang:'EN',url:'https://www.defensenews.com/arc/outboundfeeds/rss/?outputType=xml'},
+  {name:'BBC Middle East',lang:'EN',url:'http://feeds.bbci.co.uk/news/world/middle_east/rss.xml'},
+  {name:'Jerusalem Post',lang:'EN',url:'https://www.jpost.com/rss/rssfeedsfrontpage.aspx'},
+  {name:'France 24',lang:'EN',url:'https://www.france24.com/en/middle-east/rss'},
+  {name:'The Guardian',lang:'EN',url:'https://www.theguardian.com/world/middleeast/rss'},
+  {name:'NYT World',lang:'EN',url:'https://rss.nytimes.com/services/xml/rss/nyt/World.xml'},
+  {name:'WSJ World',lang:'EN',url:'https://feeds.a.dj.com/rss/RSSWorldNews.xml'},
+  {name:'FT (Europe)',lang:'EN',url:'https://www.ft.com/world/europe?format=rss'},
+  {name:'FT (USA)',lang:'EN',url:'https://www.ft.com/us?format=rss'},
+  {name:'Kommersant',lang:'RU',url:'https://www.kommersant.ru/RSS/news.xml'},
+  {name:'Vedomosti',lang:'RU',url:'https://www.vedomosti.ru/rss/news'},
+  {name:'The Hindu',lang:'EN',url:'https://www.thehindu.com/news/international/feeder/default.rss'},
+  {name:'Indian Express',lang:'EN',url:'https://indianexpress.com/section/world/feed/'},
+  {name:'The Diplomat',lang:'EN',url:'https://thediplomat.com/feed/'},
+  {name:'Global Times',lang:'ZH',url:'https://www.globaltimes.cn/rss/outbrain.xml'},
+  {name:'Xinhua',lang:'ZH',url:'http://www.xinhuanet.com/english/rss/worldrss.xml'},
+  {name:'Politico',lang:'EN',url:'https://www.politico.com/rss/politicopicks.xml'},
+  {name:'ANSA',lang:'IT',url:'https://www.ansa.it/sito/notizie/mondo/mondo_rss.xml'},
+  {name:'Repubblica',lang:'IT',url:'https://www.repubblica.it/rss/esteri/rss2.0.xml'},
+  {name:'Corriere',lang:'IT',url:'https://xml2.corrieredellasera.it/rss/esteri.xml'},
+  {name:'Sole 24 Ore',lang:'IT',url:'https://www.ilsole24ore.com/rss/mondo.xml'},
+  {name:'Fatto Quotidiano',lang:'IT',url:'https://www.ilfattoquotidiano.it/feed/'}
+];
+
+var PROXY  = 'https://corsproxy.io/?';
+var PROXY2 = 'https://api.allorigins.win/raw?url=';
+var allArticles = [], currentFilter = 'all', currentSourceFilter = null, currentSearch = '', refreshCountdown = 600, cdInterval = null;
+var CACHE_KEY = 'mewm_cache_v2', CACHE_TTL = 8 * 60 * 1000;
+var MAX_ITEMS_PER_SOURCE = 15;
+var MAX_ITEMS_SINGLE_SOURCE = 40; // fetch more so we can show 25 after ME filter // only 5 items per feed — fast load
+
+function fetchWithTimeout(url, ms){
+  ms = ms || 7000;
+  var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  var timer = controller ? setTimeout(function(){ controller.abort(); }, ms) : null;
+  var opts = controller ? { signal: controller.signal } : {};
+  return fetch(url, opts).finally(function(){ if(timer) clearTimeout(timer); });
+}
+
+function fetchFeedFast(source, itemLimit){
+  itemLimit = itemLimit || MAX_ITEMS_PER_SOURCE;
+  function tryFetch(proxyUrl, ms){
+    var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    var timer = controller ? setTimeout(function(){ controller.abort(); }, ms) : null;
+    var opts = controller ? {signal: controller.signal} : {};
+    return fetch(proxyUrl, opts).finally(function(){ if(timer) clearTimeout(timer); })
+      .then(function(r){ if(!r.ok) throw new Error('bad'); return r.text(); });
+  }
+
+  var url1 = PROXY  + encodeURIComponent(source.url);
+  var url2 = PROXY2 + encodeURIComponent(source.url);
+
+  return tryFetch(url1, 4000)
+    .catch(function(){ return tryFetch(url2, 4000); })
+    .then(function(txt){
+      var parser = new DOMParser();
+      var xml = parser.parseFromString(txt,'text/xml');
+      var items = Array.from(xml.querySelectorAll('item')).slice(0, itemLimit);
+      var results = [];
+      items.forEach(function(item){
+        var title   = ((item.querySelector('title')||{}).textContent||'').trim();
+        var link    = ((item.querySelector('link')||{}).textContent||'').trim();
+        var desc    = ((item.querySelector('description')||{}).textContent||'');
+        var pubDate = ((item.querySelector('pubDate')||{}).textContent||'');
+        var tmp = document.createElement('div'); tmp.innerHTML = desc;
+        var clean = (tmp.textContent||'').replace(/\s+/g,' ').trim().slice(0,150);
+        var fullText = title+' '+clean;
+        if(!title || !isMERelevant(fullText)) return;
+        var regions = detectRegion(fullText) || ['General'];
+        results.push({
+          headline: title,
+          originalHeadline: (source.lang !== 'EN') ? title : null,
+          summary: clean||'Read the full article for details.',
+          url: link, source: source.name, sourceLang: source.lang,
+          region: regions[0], regions: regions,
+          urgency: detectUrgency(fullText, pubDate),
+          pubDate: pubDate ? (function(d){ return d>new Date()?new Date():d; })(new Date(pubDate)) : new Date(),
+          needsTranslation: source.lang !== 'EN'
+        });
+      });
+      return results;
+    })
+    .catch(function(){ return []; });
+}
+
+function loadNews(forceRefresh){
+  if(!forceRefresh){
+    try{
+      var cached = JSON.parse(sessionStorage.getItem(CACHE_KEY)||'null');
+      if(cached && cached.ts && (Date.now()-cached.ts) < CACHE_TTL && cached.articles && cached.articles.length){
+        cached.articles.forEach(function(a){ a.pubDate = new Date(a.pubDate); });
+        allArticles = cached.articles;
+        renderFeed(); updateStats(); updateTicker(); resetCountdown();
+        document.getElementById('feedCount').textContent += ' ✓ cached';
+        return;
+      }
+    }catch(e){}
+  }
+
+  var btn=document.getElementById('refreshBtn'), icon=document.getElementById('refreshIcon');
+  btn.disabled=true; icon.className='spinning';
+  document.getElementById('newsFeed').innerHTML='<div class="loading-state"><div class="loading-spinner"></div><div class="loading-text">Fetching live headlines… <span id="loadProgress">0/'+SOURCES.length+'</span></div></div>';
+
+  var allEN=[], allNonEN=[], done=0, translationsDone=0;
+  var nonENcount = SOURCES.filter(function(s){return s.lang!=='EN';}).length;
+  var BATCH = SOURCES.length; // fetch all at once — item limit keeps it fast
+
+  function tryFinalCache(){
+    if(done===SOURCES.length && translationsDone===nonENcount){
+      try{ sessionStorage.setItem(CACHE_KEY, JSON.stringify({ts:Date.now(), articles:dedup(allEN.concat(allNonEN))})); }catch(e){}
+      resetCountdown();
+      btn.disabled=false; icon.className=''; icon.textContent='↻';
+    }
+  }
+
+  function processSource(source, singleSourceMode){
+    var limit = singleSourceMode ? MAX_ITEMS_SINGLE_SOURCE : MAX_ITEMS_PER_SOURCE;
+    return fetchFeedFast(source, limit).then(function(results){
+      done++;
+      var el = document.getElementById('loadProgress');
+      if(el) el.textContent = done+'/'+SOURCES.length;
+      if(source.lang==='EN'){
+        allEN = allEN.concat(results);
+        allArticles = dedup(allEN.concat(allNonEN));
+        renderFeed(); updateStats(); updateTicker();
+        tryFinalCache();
+      } else {
+        // Batch translate: ONE call for all headlines, ONE call for all summaries
+        var headlines = results.map(function(a){ return a.headline; });
+        var summaries = results.map(function(a){ return a.summary.slice(0,120); });
+        Promise.all([
+          translateBatch(headlines, source.lang),
+          translateBatch(summaries, source.lang)
+        ]).then(function(res){
+          var tHeads = res[0], tSums = res[1];
+          results.forEach(function(art, i){
+            if(tHeads[i] && tHeads[i] !== art.headline) art.headline = tHeads[i];
+            if(tSums[i]  && tSums[i]  !== art.summary)  art.summary  = tSums[i];
+          });
+          allNonEN = allNonEN.concat(results);
+          translationsDone++;
+          allArticles = dedup(allEN.concat(allNonEN));
+          renderFeed(); updateStats(); updateTicker();
+          tryFinalCache();
+        }).catch(function(){
+          allNonEN = allNonEN.concat(results);
+          translationsDone++;
+          tryFinalCache();
+        });
+      }
+    });
+  }
+
+  // Run in batches to avoid overloading proxy
+  var singleMode = (currentSourceFilter !== null);
+  function runBatch(idx){
+    if(idx >= SOURCES.length) return;
+    var batch = SOURCES.slice(idx, idx+BATCH);
+    Promise.all(batch.map(function(s){ return processSource(s, singleMode && s.name===currentSourceFilter); })).then(function(){
+      runBatch(idx+BATCH);
+    });
+  }
+  runBatch(0);
+}
+
+function dedup(arr){
+  var seen={};
+  var ord={BREAKING:0,DEVELOPING:1,UPDATE:2,REPORT:3};
+  return arr.filter(function(a){
+    var key=a.headline.slice(0,60).toLowerCase();
+    if(seen[key]) return false; seen[key]=true; return true;
+  }).sort(function(a,b){
+    var d=(ord[a.urgency]||3)-(ord[b.urgency]||3);
+    return d || (new Date(b.pubDate)-new Date(a.pubDate));
+  });
+}
+
+function updateClock(){
+  var now = new Date();
+  var t = new Intl.DateTimeFormat('it-IT',{timeZone:'Europe/Rome',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).format(now);
+  var tz = now.toLocaleString('en-US',{timeZone:'Europe/Rome',timeZoneName:'short'}).split(' ').pop();
+  document.getElementById('italianClock').textContent = t+' '+tz;
+}
+setInterval(updateClock,1000); updateClock();
+
+function itaTime(date){
+  var d = (date instanceof Date) ? date : new Date(date||Date.now());
+  if(isNaN(d.getTime())) d = new Date();
+  return new Intl.DateTimeFormat('it-IT',{timeZone:'Europe/Rome',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false}).format(d).replace(',',' —');
+}
+
+function wbMatch(low, kw){
+  var idx = low.indexOf(kw);
+  while(idx !== -1){
+    var before = idx === 0 ? true : !/[a-z0-9]/.test(low[idx-1]);
+    var after  = (idx+kw.length) >= low.length ? true : !/[a-z0-9]/.test(low[idx+kw.length]);
+    if(before && after) return true;
+    idx = low.indexOf(kw, idx+1);
+  }
+  return false;
+}
+function detectRegion(text){
+  var low = (text||'').toLowerCase();
+  var matched = [];
+  for(var r in REGIONS){
+    var kws = REGIONS[r];
+    for(var i=0;i<kws.length;i++){
+      if(wbMatch(low, kws[i])){ matched.push(r); break; }
+    }
+  }
+  return matched.length ? matched : null;
+}
+
+
+function detectUrgency(text, pubDate){
+  var low = (text||'').toLowerCase();
+  var ageHours = (Date.now() - (pubDate?new Date(pubDate).getTime():Date.now())) / 3600000;
+  if(low.indexOf('breaking')!==-1||low.indexOf('urgent')!==-1||low.indexOf('kills')!==-1||low.indexOf('killed')!==-1) return 'BREAKING';
+  if(ageHours < 3) return 'DEVELOPING';
+  if(ageHours < 12) return 'UPDATE';
+  return 'REPORT';
+}
+
+var TRANSLATE_PROXY = 'https://api.allorigins.win/raw?url=';
+
+function translateBatch(texts, sourceLang){
+  if(!texts.length || sourceLang === 'EN') return Promise.resolve(texts);
+  var langMap = {'RU':'ru','ZH':'zh-CN','IT':'it','HI':'hi'};
+  var sl = langMap[sourceLang] || 'auto';
+  // Join all texts with a separator, translate in ONE call
+  var separator = ' ||| ';
+  var combined = texts.join(separator);
+  var url = 'https://translate.googleapis.com/translate_a/single?client=gtx&sl='+sl+'&tl=en&dt=t&q='+encodeURIComponent(combined);
+  return fetch(url)
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      if(data && data[0]){
+        var translated = data[0].map(function(s){ return (s&&s[0])||''; }).join('');
+        return translated.split(separator);
+      }
+      return texts;
+    })
+    .catch(function(){
+      return fetch('https://api.allorigins.win/raw?url='+encodeURIComponent(url))
+        .then(function(r){ return r.json(); })
+        .then(function(data){
+          if(data && data[0]){
+            var translated = data[0].map(function(s){ return (s&&s[0])||''; }).join('');
+            return translated.split(separator);
+          }
+          return texts;
+        })
+        .catch(function(){ return texts; });
+    });
+}
+
+function loadNewsOLD_REMOVED(){}
+
+function renderFeed(){
+  var arts=allArticles.slice();
+  if(currentFilter!=='all') arts=arts.filter(function(a){ var rr=a.regions||[a.region]; return rr.indexOf(currentFilter)!==-1; });
+  if(currentSourceFilter) arts=arts.filter(function(a){return a.source===currentSourceFilter;});
+  if(currentSearch){
+    // Split into tokens: quoted phrases stay together, other words are AND'd
+    var tokens = [];
+    var raw = currentSearch;
+    var phraseMatch = raw.match(/"([^"]+)"/g);
+    if(phraseMatch){ phraseMatch.forEach(function(p){ tokens.push(p.replace(/"/g,'')); raw = raw.replace(p,''); }); }
+    raw.trim().split(/\s+/).forEach(function(w){ if(w) tokens.push(w); });
+    // Article must match ALL tokens (AND logic)
+    arts=arts.filter(function(a){
+      var haystack = ((a.headline||'')+' '+(a.summary||'')+' '+(a.source||'')).toLowerCase();
+      return tokens.every(function(t){ return haystack.indexOf(t)!==-1; });
+    });
+    var cnt = document.getElementById('searchCount');
+    if(cnt) cnt.textContent = arts.length + ' result' + (arts.length!==1?'s':'') + ' for "' + currentSearch + '"';
+  } else {
+    var cnt = document.getElementById('searchCount');
+    if(cnt) cnt.textContent = '';
+  }
+  var displayMax = currentSourceFilter ? 25 : 200;
+  var label = currentSourceFilter ? '📰 '+currentSourceFilter+' — '+arts.length+' articles' : arts.length+' dispatches';
+  document.getElementById('feedCount').textContent=label;
+  if(!arts.length){document.getElementById('newsFeed').innerHTML='<div class="loading-state"><div style="font-size:30px">📭</div><div class="loading-text">No articles for this filter.</div></div>';return;}
+  var uc={BREAKING:'u-breaking',DEVELOPING:'u-developing',UPDATE:'u-update',REPORT:'u-report'};
+  var bc={BREAKING:'breaking',DEVELOPING:'developing',UPDATE:'update',REPORT:''};
+  document.getElementById('newsFeed').innerHTML=arts.map(function(a,i){
+    var transLabel = (a.needsTranslation) ? '<span class="trans-badge">🌐 Translated from '+a.sourceLang+'</span>' : '';
+    return '<div class="news-card '+(bc[a.urgency]||'')+'" style="animation-delay:'+(i*0.03)+'s">'+
+    '<div class="card-inner">'+
+    '<div class="card-meta">'+
+    '<span class="lang-tag l-'+a.sourceLang.toLowerCase().slice(0,2)+'">'+a.sourceLang+'</span>'+
+    '<span class="source-name">'+a.source+'</span>'+
+    '<span class="urgency-tag '+(uc[a.urgency]||'u-report')+'">'+a.urgency+'</span>'+
+    '<span class="region-tag">📍 '+a.region+'</span>'+
+    transLabel+
+    '<span class="card-timestamp">🕐 '+itaTime(a.pubDate)+'</span>'+
+    '</div>'+
+    '<div class="card-headline"><a href="'+a.url+'" target="_blank" rel="noopener">'+a.headline+'</a></div>'+
+    (a.summary?'<div class="card-summary">'+highlightText(a.summary, currentSearch)+'</div>':'')+
+    '<div class="card-footer">'+
+    '<a class="read-more" href="'+a.url+'" target="_blank" rel="noopener">Read full article →</a>'+
+    '<span class="source-note">📰 '+a.source+'</span>'+
+    '<button class="bookmark-btn'+(isBookmarked(a.url)?' bookmarked':'')+'" onclick="toggleBookmark(\''+a.url.replace(/'/g,"\\'")+'\',this)" title="Bookmark this article">'+(isBookmarked(a.url)?'⭐':'☆')+'</button>'+
+    '</div></div></div>';
+  }).join('');
+}
+
+function setSourceFilter(sourceName, el){
+  currentSourceFilter = sourceName;
+  document.querySelectorAll('.source-row').forEach(function(r){r.classList.remove('src-active');});
+  if(el && sourceName) el.classList.add('src-active');
+  loadNews(true);
+  // Scroll feed into view smoothly after short delay to let render complete
+  setTimeout(function(){
+    var feed = document.getElementById('newsFeed');
+    scrollToFeed();
+  }, 150);
+}
+
+function updateStats(){
+  var now=new Date(), todayStart=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  document.getElementById('statTotal').textContent=allArticles.length;
+  document.getElementById('statSources').textContent=new Set(allArticles.map(function(a){return a.source;})).size;
+  document.getElementById('statToday').textContent=allArticles.filter(function(a){return a.pubDate>=todayStart;}).length;
+  document.getElementById('statBreaking').textContent=allArticles.filter(function(a){return a.urgency==='BREAKING';}).length;
+  document.getElementById('cntAll').textContent=allArticles.length;
+}
+
+function updateTicker(){
+  var hot=allArticles.filter(function(a){return a.urgency==='BREAKING'||a.urgency==='DEVELOPING';}).slice(0,14);
+  if(!hot.length) hot=allArticles.slice(0,8);
+  if(!hot.length) return;
+  var html=hot.map(function(a){return '<span><a href="'+a.url+'" target="_blank" rel="noopener" style="color:#fff;text-decoration:none;" onmouseover="this.style.textDecoration=\'underline\'" onmouseout="this.style.textDecoration=\'none\'">'+a.headline+'</a></span>';}).join('');
+  document.getElementById('tickerTrack').innerHTML=html+html;
+}
+
+function onSearchInput(){
+  var val = document.getElementById('searchInput').value.trim().toLowerCase();
+  currentSearch = val;
+  var clearBtn = document.getElementById('searchClear');
+  clearBtn.classList.toggle('visible', val.length > 0);
+  renderFeed();
+  if(val.length > 0){
+    setTimeout(function(){ scrollToFeed(); }, 100);
+  }
+}
+
+function clearSearch(){
+  document.getElementById('searchInput').value = '';
+  currentSearch = '';
+  document.getElementById('searchClear').classList.remove('visible');
+  document.getElementById('searchCount').textContent = '';
+  renderFeed();
+}
+
+function highlightText(text, keyword){
+  if(!keyword) return text;
+  // Build same token list as filter
+  var tokens = [];
+  var raw = keyword;
+  var phraseMatch = raw.match(/"([^"]+)"/g);
+  if(phraseMatch){ phraseMatch.forEach(function(p){ tokens.push(p.replace(/"/g,'')); raw = raw.replace(p,''); }); }
+  raw.trim().split(/\s+/).forEach(function(w){ if(w) tokens.push(w); });
+  var result = text;
+  tokens.forEach(function(t){
+    var escaped = t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+    result = result.replace(new RegExp('('+escaped+')', 'gi'), '<span class="search-highlight">$1</span>');
+  });
+  return result;
+}
+
+function filterByStat(type){
+  var arts = allArticles.slice();
+  if(type === 'today'){
+    var now = new Date(); var midnight = new Date(now.getFullYear(),now.getMonth(),now.getDate());
+    arts = arts.filter(function(a){ return a.pubDate && a.pubDate >= midnight; });
+  } else if(type === 'breaking'){
+    arts = arts.filter(function(a){ return a.urgency === 'BREAKING' || a.urgency === 'DEVELOPING'; });
+  }
+  var saved = allArticles;
+  allArticles = arts;
+  currentFilter = 'all'; currentSourceFilter = null;
+  document.querySelectorAll('.stat-box').forEach(function(b){ b.style.borderColor='transparent'; });
+  event.currentTarget.style.borderColor = '#e8263a';
+  renderFeed();
+  allArticles = saved;
+  setTimeout(function(){ (function(){
+    scrollToFeed();
+  })(); }, 100);
+}
+
+function setFilter(f,btn){
+  currentFilter=f;
+  currentSourceFilter=null;
+  document.querySelectorAll('.filter-btn').forEach(function(b){b.classList.remove('active');});
+  if(btn) btn.classList.add('active');
+  document.querySelectorAll('.conflict-item').forEach(function(b){b.classList.remove('act');});
+  document.querySelectorAll('.source-row').forEach(function(r){r.classList.remove('src-active');});
+  renderFeed();
+  setTimeout(function(){ (function(){
+    scrollToFeed();
+  })(); }, 100);
+}
+
+function resetCountdown(){
+  refreshCountdown=600;
+  if(cdInterval) clearInterval(cdInterval);
+  document.getElementById('refreshBar').style.width='0%';
+  cdInterval=setInterval(function(){
+    refreshCountdown--;
+    document.getElementById('refreshBar').style.width=((600-refreshCountdown)/600*100)+'%';
+    var m=Math.floor(refreshCountdown/60),s=String(refreshCountdown%60).padStart(2,'0');
+    document.getElementById('nextRefresh').textContent=m+':'+s;
+    if(refreshCountdown<=0){clearInterval(cdInterval);loadNews(true);}
+  },1000);
+}
+
+function toggleGroup(id, titleEl){
+  var grp = document.getElementById(id);
+  var isCollapsed = grp.classList.contains('collapsed');
+  if(isCollapsed){
+    grp.style.maxHeight = grp.scrollHeight + 'px';
+    grp.classList.remove('collapsed');
+    titleEl.classList.remove('collapsed');
+  } else {
+    grp.style.maxHeight = grp.scrollHeight + 'px';
+    requestAnimationFrame(function(){
+      requestAnimationFrame(function(){
+        grp.style.maxHeight = '0px';
+        grp.classList.add('collapsed');
+        titleEl.classList.add('collapsed');
+      });
+    });
+  }
+}
+
+// Set initial max-heights after DOM ready
+window.addEventListener('DOMContentLoaded', function(){
+  document.querySelectorAll('.conflict-group').forEach(function(g){
+    g.style.maxHeight = g.scrollHeight + 'px';
+  });
+});
+
+function scrollToFeed(){
+  var feed = document.getElementById('newsFeed');
+  if(!feed) return;
+  var stickyH = 0;
+  var els = document.querySelectorAll('header, .ticker-wrap, .filters-bar, .search-bar, .bookmarks-bar');
+  els.forEach(function(el){ stickyH += el.offsetHeight; });
+  var top = feed.getBoundingClientRect().top + window.pageYOffset - stickyH - 10;
+  window.scrollTo({top: top, behavior:'smooth'});
+}
+
+// === BOOKMARKS (localStorage) ===
+var showingBookmarks = false;
+
+function getBookmarks(){
+  try{ return JSON.parse(localStorage.getItem('mewm_bookmarks')||'{}'); }catch(e){ return {}; }
+}
+function saveBookmarks(bm){
+  try{ localStorage.setItem('mewm_bookmarks', JSON.stringify(bm)); }catch(e){}
+}
+function isBookmarked(url){
+  return !!getBookmarks()[url];
+}
+function toggleBookmark(url, btnEl){
+  var bm = getBookmarks();
+  if(bm[url]){
+    delete bm[url];
+    if(btnEl){ btnEl.textContent='☆'; btnEl.classList.remove('bookmarked'); }
+  } else {
+    // Find the article data to store headline+source+date
+    var art = allArticles.find(function(a){ return a.url === url; });
+    bm[url] = {
+      headline: art ? art.headline : '',
+      source: art ? art.source : '',
+      region: art ? art.region : '',
+      urgency: art ? art.urgency : 'REPORT',
+      pubDate: art ? art.pubDate : new Date(),
+      ts: Date.now()
+    };
+    if(btnEl){ btnEl.textContent='⭐'; btnEl.classList.add('bookmarked'); }
+  }
+  saveBookmarks(bm);
+  updateBmCount();
+  if(showingBookmarks) renderFeed();
+}
+function updateBmCount(){
+  var bm = getBookmarks();
+  var n = Object.keys(bm).length;
+  var el = document.getElementById('bmCount');
+  if(el) el.textContent = n;
+}
+function toggleBookmarkView(){
+  showingBookmarks = !showingBookmarks;
+  var btn = document.getElementById('bmToggle');
+  var status = document.getElementById('bmStatus');
+  if(showingBookmarks){
+    btn.classList.add('active');
+    status.textContent = 'Showing bookmarked articles only';
+  } else {
+    btn.classList.remove('active');
+    status.textContent = '';
+  }
+  renderFeed();
+  setTimeout(function(){ scrollToFeed(); }, 100);
+}
+
+// Patch renderFeed to support bookmark filtering
+var _origRenderFeed = renderFeed;
+renderFeed = function(){
+  if(showingBookmarks){
+    var bm = getBookmarks();
+    var bmUrls = Object.keys(bm);
+    var savedAll = allArticles;
+    allArticles = allArticles.filter(function(a){ return bmUrls.indexOf(a.url) !== -1; });
+    _origRenderFeed();
+    allArticles = savedAll;
+    document.getElementById('feedCount').textContent = '⭐ ' + bmUrls.length + ' bookmarked';
+  } else {
+    _origRenderFeed();
+  }
+  updateBmCount();
+};
+
+loadNews(false);
+</script>
+</body>
+</html>
