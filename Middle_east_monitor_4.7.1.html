@@ -8,7 +8,7 @@
   *{box-sizing:border-box;margin:0;padding:0;}
   html{font-size:122%;}
   body{background:#0a0c10;color:#e8eaf0;font-family:Arial,sans-serif;min-height:100vh;}
-  .ticker-wrap{background:#e8263a;overflow:hidden;height:32px;display:flex;align-items:center;position:sticky;top:65px;z-index:99;}
+  .ticker-wrap{background:#e8263a;overflow:hidden;height:32px;display:flex;align-items:center;position:fixed;top:62px;left:0;right:0;z-index:99;}
   .ticker-label{background:#8b0000;color:#fff;font-size:11px;font-weight:bold;letter-spacing:2px;padding:0 14px;height:100%;display:flex;align-items:center;white-space:nowrap;flex-shrink:0;}
   .ticker-inner{overflow:hidden;flex:1;}
   .ticker-track{display:flex;animation:ticker 80s linear infinite;white-space:nowrap;}
@@ -33,7 +33,7 @@
   .spinning{display:inline-block;animation:spin 0.9s linear infinite;}
   .refresh-progress{height:3px;background:#1e2330;}
   .refresh-bar{height:100%;background:linear-gradient(90deg,#e8263a,#ff6b35);width:0%;transition:width 1s linear;}
-  .filters-bar{background:#111318;border-bottom:1px solid #1e2330;padding:8px 24px;position:sticky;top:97px;z-index:98;}
+  .filters-bar{background:#111318;border-bottom:1px solid #1e2330;padding:8px 24px;position:sticky;top:94px;z-index:98;}
   .search-bar{background:#111318;border-bottom:1px solid #1e2330;padding:6px 24px;position:sticky;top:calc(97px + 80px);z-index:97;display:flex;align-items:center;gap:8px;}
   .search-input{background:#ffffff;border:1px solid #e8263a;color:#111318;border-radius:20px;padding:6px 14px;font-size:13px;font-family:Arial,sans-serif;outline:none;width:280px;transition:border-color 0.2s;}
   .search-input:focus{border-color:#e8263a;box-shadow:0 0 0 2px rgba(232,38,58,0.2);}
@@ -119,14 +119,6 @@
   .trans-badge{font-size:9px;padding:2px 7px;border-radius:3px;background:rgba(99,102,241,0.15);color:#a5b4fc;border:1px solid rgba(99,102,241,0.3);}
   .free-badge{display:none;}
   @media(max-width:820px){main{grid-template-columns:1fr;padding:12px;}header{padding:0 12px;}.filters-bar{padding:8px 12px;}}
-  .bm-btn{background:none;border:none;cursor:pointer;font-size:18px;padding:0 3px;opacity:0.3;transition:all 0.15s;line-height:1;}
-  .bm-btn:hover{opacity:1;transform:scale(1.2);}
-  .bm-btn.on{opacity:1;}
-  .bm-badge{display:none;background:#fbbf24;color:#000;border-radius:10px;padding:1px 6px;font-size:10px;font-weight:bold;margin-left:3px;}
-  .bm-badge.vis{display:inline;}
-  .bm-bar{background:#111318;border-bottom:1px solid #1e2330;padding:6px 24px;position:sticky;top:calc(97px+80px+40px);z-index:96;display:flex;align-items:center;gap:10px;}
-  .bm-bar button{background:#161921;border:1px solid #1e2330;color:#ffd700;border-radius:20px;padding:5px 14px;cursor:pointer;font-size:12px;font-weight:bold;font-family:Arial,sans-serif;transition:all 0.2s;}
-  .bm-bar button:hover,.bm-bar button.on{background:rgba(255,215,0,0.15);border-color:#ffd700;}
 </style>
 </head>
 <body>
@@ -199,7 +191,6 @@
   <span class="search-count" id="searchCount"></span>
 </div>
 
-<div class="bm-bar"><button id="bmBtn" onclick="bmToggleView()">⭐ Bookmarks<span class="bm-badge" id="bmBadge"></span></button><span style="font-size:11px;color:#6b7280" id="bmStatus"></span></div>
 <main>
   <div>
     <div class="feed-header">
@@ -456,8 +447,8 @@ var SOURCES = [
   {name:'Fatto Quotidiano',lang:'IT',url:'https://www.ilfattoquotidiano.it/feed/'}
 ];
 
-var PROXY  = 'https://corsproxy.io/?';
-var PROXY2 = 'https://api.allorigins.win/raw?url=';
+var PROXY  = 'https://api.allorigins.win/raw?url=';
+var PROXY2 = 'https://corsproxy.io/?';
 var allArticles = [], currentFilter = 'all', currentSourceFilter = null, currentSearch = '', refreshCountdown = 600, cdInterval = null;
 var CACHE_KEY = 'mewm_cache', CACHE_TTL = 8 * 60 * 1000;
 var MAX_ITEMS_PER_SOURCE = 15;
@@ -473,47 +464,86 @@ function fetchWithTimeout(url, ms){
 
 function fetchFeedFast(source, itemLimit){
   itemLimit = itemLimit || MAX_ITEMS_PER_SOURCE;
-  function tryFetch(proxyUrl, ms){
+
+  function parseXML(txt){
+    var parser = new DOMParser();
+    var xml = parser.parseFromString(txt,'text/xml');
+    var items = Array.from(xml.querySelectorAll('item')).slice(0, itemLimit);
+    var results = [];
+    items.forEach(function(item){
+      var title   = ((item.querySelector('title')||{}).textContent||'').trim();
+      var link    = ((item.querySelector('link')||{}).textContent||'').trim();
+      var desc    = ((item.querySelector('description')||{}).textContent||'');
+      var pubDate = ((item.querySelector('pubDate')||{}).textContent||'');
+      var tmp = document.createElement('div'); tmp.innerHTML = desc;
+      var clean = (tmp.textContent||'').replace(/\s+/g,' ').trim().slice(0,150);
+      var fullText = title+' '+clean;
+      if(!title || !isMERelevant(fullText)) return;
+      var regions = detectRegion(fullText) || ['General'];
+      results.push({
+        headline: title,
+        originalHeadline: (source.lang !== 'EN') ? title : null,
+        summary: clean||'Read the full article for details.',
+        url: link, source: source.name, sourceLang: source.lang,
+        region: regions[0], regions: regions,
+        urgency: detectUrgency(fullText, pubDate),
+        pubDate: pubDate ? (function(d){ return d>new Date()?new Date():d; })(new Date(pubDate)) : new Date(),
+        needsTranslation: source.lang !== 'EN'
+      });
+    });
+    return results;
+  }
+
+  function tryRaw(proxyUrl, ms){
     var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
     var timer = controller ? setTimeout(function(){ controller.abort(); }, ms) : null;
     var opts = controller ? {signal: controller.signal} : {};
-    return fetch(proxyUrl, opts).finally(function(){ if(timer) clearTimeout(timer); })
-      .then(function(r){ if(!r.ok) throw new Error('bad'); return r.text(); });
+    return fetch(proxyUrl, opts)
+      .finally(function(){ if(timer) clearTimeout(timer); })
+      .then(function(r){ if(!r.ok) throw new Error('bad '+r.status); return r.text(); })
+      .then(function(txt){ return parseXML(txt); });
   }
 
-  var url1 = PROXY  + encodeURIComponent(source.url);
-  var url2 = PROXY2 + encodeURIComponent(source.url);
-
-  return tryFetch(url1, 4000)
-    .catch(function(){ return tryFetch(url2, 4000); })
-    .then(function(txt){
-      var parser = new DOMParser();
-      var xml = parser.parseFromString(txt,'text/xml');
-      var items = Array.from(xml.querySelectorAll('item')).slice(0, itemLimit);
-      var results = [];
-      items.forEach(function(item){
-        var title   = ((item.querySelector('title')||{}).textContent||'').trim();
-        var link    = ((item.querySelector('link')||{}).textContent||'').trim();
-        var desc    = ((item.querySelector('description')||{}).textContent||'');
-        var pubDate = ((item.querySelector('pubDate')||{}).textContent||'');
-        var tmp = document.createElement('div'); tmp.innerHTML = desc;
-        var clean = (tmp.textContent||'').replace(/\s+/g,' ').trim().slice(0,150);
-        var fullText = title+' '+clean;
-        if(!title || !isMERelevant(fullText)) return;
-        var regions = detectRegion(fullText) || ['General'];
-        results.push({
-          headline: title,
-          originalHeadline: (source.lang !== 'EN') ? title : null,
-          summary: clean||'Read the full article for details.',
-          url: link, source: source.name, sourceLang: source.lang,
-          region: regions[0], regions: regions,
-          urgency: detectUrgency(fullText, pubDate),
-          pubDate: pubDate ? (function(d){ return d>new Date()?new Date():d; })(new Date(pubDate)) : new Date(),
-          needsTranslation: source.lang !== 'EN'
+  function tryRss2json(ms){
+    var apiUrl = 'https://api.rss2json.com/v1/api.json?rss_url='+encodeURIComponent(source.url);
+    var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    var timer = controller ? setTimeout(function(){ controller.abort(); }, ms) : null;
+    var opts = controller ? {signal: controller.signal} : {};
+    return fetch(apiUrl, opts)
+      .finally(function(){ if(timer) clearTimeout(timer); })
+      .then(function(r){ if(!r.ok) throw new Error('bad'); return r.json(); })
+      .then(function(data){
+        if(!data || data.status !== 'ok' || !data.items) throw new Error('no items');
+        var results = [];
+        data.items.slice(0, itemLimit).forEach(function(item){
+          var title = (item.title||'').trim();
+          var link  = item.link||item.guid||'';
+          var clean = ((item.description||item.content||'').replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim()).slice(0,150);
+          var pubDate = item.pubDate||'';
+          var fullText = title+' '+clean;
+          if(!title || !isMERelevant(fullText)) return;
+          var regions = detectRegion(fullText) || ['General'];
+          results.push({
+            headline: title,
+            originalHeadline: (source.lang !== 'EN') ? title : null,
+            summary: clean||'Read the full article for details.',
+            url: link, source: source.name, sourceLang: source.lang,
+            region: regions[0], regions: regions,
+            urgency: detectUrgency(fullText, pubDate),
+            pubDate: pubDate ? (function(d){ return d>new Date()?new Date():d; })(new Date(pubDate)) : new Date(),
+            needsTranslation: source.lang !== 'EN'
+          });
         });
+        return results;
       });
-      return results;
-    })
+  }
+
+  var url1 = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(source.url);
+  var url2 = 'https://corsproxy.io/?' + encodeURIComponent(source.url);
+
+  return tryRss2json(7000)
+    .catch(function(){ return tryRaw(url1, 5000); })
+    .catch(function(){ return tryRaw(url2, 5000); })
     .catch(function(){ return []; });
 }
 
@@ -540,7 +570,6 @@ function loadNews(forceRefresh){
   var BATCH = SOURCES.length; // fetch all at once — item limit keeps it fast
 
   function tryFinalCache(){
-    console.log('[DEBUG] tryFinalCache: done='+done+'/'+SOURCES.length+' translationsDone='+translationsDone+'/'+nonENcount);
     if(done===SOURCES.length && translationsDone===nonENcount){
       try{ sessionStorage.setItem(CACHE_KEY, JSON.stringify({ts:Date.now(), articles:dedup(allEN.concat(allNonEN))})); }catch(e){}
       resetCountdown();
@@ -554,7 +583,6 @@ function loadNews(forceRefresh){
       done++;
       var el = document.getElementById('loadProgress');
       if(el) el.textContent = done+'/'+SOURCES.length;
-      console.log('[DEBUG] done='+done+' translationsDone='+translationsDone+' nonENcount='+nonENcount+' source='+source.name+' lang='+source.lang+' results='+results.length);
       if(source.lang==='EN'){
         allEN = allEN.concat(results);
         allArticles = dedup(allEN.concat(allNonEN));
@@ -564,16 +592,16 @@ function loadNews(forceRefresh){
         // Batch translate: ONE call for all headlines, ONE call for all summaries
         var headlines = results.map(function(a){ return a.headline; });
         var summaries = results.map(function(a){ return a.summary.slice(0,120); });
-        if(!results.length){ console.log('[DEBUG] SKIP TRANSLATE empty results for '+source.name); translationsDone++; tryFinalCache(); return; }
+        if(!results.length){ translationsDone++; tryFinalCache(); return; }
         var _tDone = false;
         var _tTimer = setTimeout(function(){
-          console.log('[DEBUG] TIMEOUT fired for '+source.name);
           if(_tDone) return; _tDone = true;
           allNonEN = allNonEN.concat(results);
           translationsDone++;
           allArticles = dedup(allEN.concat(allNonEN));
-          renderFeed(); updateStats(); updateTicker(); tryFinalCache();
-        }, 6000);
+          renderFeed(); updateStats(); updateTicker();
+          tryFinalCache();
+        }, 8000);
         Promise.all([
           translateBatch(headlines, source.lang),
           translateBatch(summaries, source.lang)
@@ -587,7 +615,8 @@ function loadNews(forceRefresh){
           allNonEN = allNonEN.concat(results);
           translationsDone++;
           allArticles = dedup(allEN.concat(allNonEN));
-          renderFeed(); updateStats(); updateTicker(); tryFinalCache();
+          renderFeed(); updateStats(); updateTicker();
+          tryFinalCache();
         }).catch(function(){
           if(_tDone) return; _tDone = true; clearTimeout(_tTimer);
           allNonEN = allNonEN.concat(results);
@@ -748,7 +777,6 @@ function renderFeed(){
     '<div class="card-footer">'+
     '<a class="read-more" href="'+a.url+'" target="_blank" rel="noopener">Read full article →</a>'+
     '<span class="source-note">📰 '+a.source+'</span>'+
-    '<button class="bm-btn'+(bmHas(a.url)?' on':'')+'" onclick="bmClick('+i+',this)">🔖</button>'+
     '</div></div></div>';
   }).join('');
 }
@@ -889,60 +917,6 @@ window.addEventListener('DOMContentLoaded', function(){
   });
 });
 
-
-// ── BOOKMARKS ──────────────────────────────────────────────────────────
-var _bmData = {};
-var _bmShow = false;
-try { _bmData = JSON.parse(localStorage.getItem('mewm_bm2') || '{}'); } catch(e) {}
-
-function bmHas(url) { return !!_bmData[url]; }
-
-function bmClick(idx, btn) {
-  var a = allArticles[idx];
-  if (!a) return;
-  if (_bmData[a.url]) {
-    delete _bmData[a.url];
-    btn.classList.remove('on');
-  } else {
-    _bmData[a.url] = { headline: a.headline, source: a.source, pubDate: a.pubDate, url: a.url };
-    btn.classList.add('on');
-  }
-  try { localStorage.setItem('mewm_bm2', JSON.stringify(_bmData)); } catch(e) {}
-  bmRefreshBadge();
-  if (_bmShow) renderFeed();
-}
-
-function bmRefreshBadge() {
-  var n = Object.keys(_bmData).length;
-  var el = document.getElementById('bmBadge');
-  if (el) { el.textContent = n; el.classList.toggle('vis', n > 0); }
-}
-
-function bmToggleView() {
-  _bmShow = !_bmShow;
-  var btn = document.getElementById('bmBtn');
-  var st  = document.getElementById('bmStatus');
-  if (btn) btn.classList.toggle('on', _bmShow);
-  if (st) st.textContent = _bmShow ? 'Showing saved articles' : '';
-  renderFeed();
-  setTimeout(scrollToFeed, 100);
-}
-
-var _rfOrig = renderFeed;
-renderFeed = function() {
-  if (_bmShow) {
-    var bak = allArticles;
-    allArticles = allArticles.filter(function(a) { return _bmData[a.url]; });
-    _rfOrig();
-    allArticles = bak;
-    document.getElementById('feedCount').textContent = '⭐ ' + Object.keys(_bmData).length + ' saved';
-  } else {
-    _rfOrig();
-  }
-  bmRefreshBadge();
-};
-
-bmRefreshBadge();
 loadNews(false);
 </script>
 </body>
